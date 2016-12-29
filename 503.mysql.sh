@@ -36,7 +36,7 @@ then
     source_periodic_confs
 fi
 
-daily_mysql_enable=${daily_mysql_enable:-"NO"}
+daily_mysql_backup_enable=${daily_backup_mysql_enable:-"NO"}
 daily_mysql_host=${daily_mysql_host:-"localhost"}
 daily_mysql_user=${daily_mysql_user:-"root"}
 daily_mysql_passwd=${daily_mysql_passwd:-""}
@@ -57,7 +57,7 @@ mysql_backup() {
 	# daily_mysql_backupdir must be writeable by user mysql
 	# /var/db/mysql is just that under normal circumstances,
 	# but this might not be where you want the backups...
-	if [ ! -d ${backupdir} ] ; then 
+	if [ ! -d ${backupdir} ] ; then
 	    echo Creating ${backupdir}
 	    mkdir -m 700 ${backupdir}; chown mysql ${backupdir}
 	fi
