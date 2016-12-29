@@ -29,6 +29,7 @@
 # daily_mysql_backupdir (str):	Set directory to backup to. Default /var/db/mysql/backups.
 # daily_mysql_savedays (str):	Number of days to keep backups. Default 7.
 # daily_mysql_dumpargs (str):	Arguments to be passed to mysqldump. Default "--opt".
+# daily_mysql_backup_bucket (str):     Name of the S3 bucket to upload to.
 
 if [ -r /etc/defaults/periodic.conf ]
 then
@@ -43,6 +44,7 @@ daily_mysql_passwd=${daily_mysql_passwd:-""}
 daily_mysql_backupdir=${daily_mysql_backupdir:-"/var/db/mysql/backups"}
 daily_mysql_savedays=${daily_mysql_savedays:-"7"}
 daily_mysql_dumpargs=${daily_mysql_dumpargs:-"--opt"}
+daily_mysql_backup_bucket=${daily_mysql_backup_bucket:-"NO"}
 
 eval backupdir=${daily_mysql_backupdir}
 
@@ -82,7 +84,19 @@ mysql_backup() {
 	if [ $rc -gt 0 ] ; then
 		echo
 		echo "Errors were reported during backup."
+		exit $rc
 	fi
+
+	# sync to S3
+	case "$daily_mysql_backup_bucket" in
+		[Nn][Oo]|"")
+			echo "No S3 bucket configured or disabled."
+			;;
+		*)
+			aws s3 sync ${backupdir} s3://${daily_mysql_backup_bucket}
+			;;
+	esac
+
 
 	# cleaning up old data
 	find ${backupdir} -name 'mysqldump_*' \
