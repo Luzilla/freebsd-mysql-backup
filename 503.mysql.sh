@@ -37,7 +37,7 @@ then
     source_periodic_confs
 fi
 
-daily_mysql_backup_enable=${daily_backup_mysql_enable:-"NO"}
+daily_mysql_backup_enable=${daily_mysql_backup_enable:-"NO"}
 daily_mysql_host=${daily_mysql_host:-"localhost"}
 daily_mysql_user=${daily_mysql_user:-"root"}
 daily_mysql_passwd=${daily_mysql_passwd:-""}
