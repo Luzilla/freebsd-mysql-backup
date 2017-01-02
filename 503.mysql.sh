@@ -23,13 +23,14 @@
 #
 # Fine tune nightly backup you may use the following
 #
-# daily_mysql_host (str):	Set mysql host to connect to. Default "localhost".
-# daily_mysql_user (str):	Set mysql user to login with. Default "root".
-# daily_mysql_passwd (str):	Set mysql user password. Default blank.
-# daily_mysql_backupdir (str):	Set directory to backup to. Default /var/db/mysql/backups.
-# daily_mysql_savedays (str):	Number of days to keep backups. Default 7.
-# daily_mysql_dumpargs (str):	Arguments to be passed to mysqldump. Default "--opt".
-# daily_mysql_backup_bucket (str):     Name of the S3 bucket to upload to.
+# daily_mysql_host (str):			Set mysql host to connect to. Default "localhost".
+# daily_mysql_user (str):			Set mysql user to login with. Default "root".
+# daily_mysql_passwd (str):			Set mysql user password. Default blank.
+# daily_mysql_backupdir (str):			Set directory to backup to. Default /var/db/mysql/backups.
+# daily_mysql_savedays (str):			Number of days to keep backups. Default 7.
+# daily_mysql_dumpargs (str):			Arguments to be passed to mysqldump. Default "--opt".
+# daily_mysql_backup_bucket (str):		Name of the S3 bucket to upload to.
+# daily_mysql_backup_ignore_system (str):	Ignore 'mysql', 'information_schema' and 'performance_schema'.
 
 if [ -r /etc/defaults/periodic.conf ]
 then
@@ -45,6 +46,7 @@ daily_mysql_backupdir=${daily_mysql_backupdir:-"/var/db/mysql/backups"}
 daily_mysql_savedays=${daily_mysql_savedays:-"7"}
 daily_mysql_dumpargs=${daily_mysql_dumpargs:-"--opt"}
 daily_mysql_backup_bucket=${daily_mysql_backup_bucket:-"NO"}
+daily_mysql_backup_ignore_system=${daily_mysql_backup_ignore_system:-"YES"}
 
 eval backupdir=${daily_mysql_backupdir}
 
@@ -107,8 +109,23 @@ mysql_backup() {
 
 case "$daily_mysql_backup_enable" in
 	[Yy][Ee][Ss])
+		show_query='SHOW DATABASES';
+
+		case "$daily_mysql_backup_ignore_system" in
+			[Yy][Es][Ss])
+				show_query="${show_query} WHERE \`Database\` NOT IN (\"mysql\", \"information_schema\", \"performance_schema\")"
+				;;
+			[Nn][Oo])
+				echo "This may require more invasive measures to stop all ops."
+				;;
+			*)
+				echo "Misconfiguration in daily_mysql_backup_ignore_system"
+				exit 2
+				;;
+		esac
+
 		dbnames=""
-		dbresults=`su -l ${daily_mysql_user} -c "umask 077; mysql ${daily_mysql_args} -e 'show databases'"`
+		dbresults=`su -l ${daily_mysql_user} -c "umask 077; mysql ${daily_mysql_args} -e '${show_query}'"`
 		for db in ${dbresults} ; do
 			test "$db" = "Database" -o "$db" = "backups" && continue
 			dbnames="${dbnames} ${db}"
