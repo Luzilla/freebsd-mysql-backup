@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh -
 #
 # $FreeBSD$
 #
@@ -84,13 +84,14 @@ mysql_backup() {
 	if [ $rc -gt 0 ] ; then
 		echo
 		echo "Errors were reported during backup."
-		exit $rc
+		return
 	fi
 
 	# sync to S3
 	case "$daily_mysql_backup_bucket" in
 		[Nn][Oo]|"")
 			echo "No S3 bucket configured or disabled."
+			rc=2
 			;;
 		*)
 			aws s3 sync ${backupdir} s3://${daily_mysql_backup_bucket}
@@ -115,6 +116,7 @@ case "$daily_mysql_backup_enable" in
 		mysql_backup $dbnames
 		;;
 	[Nn][Oo]|"")
+		echo "Disabled"
 		;;
 	*)
 		mysql_backup $daily_mysql_backup_enable
